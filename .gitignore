@@ -8,3 +8,6 @@ venv/
 .idea/
 .vscode/
 *.log
+
+# WorkBuddy 会话数据（工作日志、记忆等，不进版本库）
+.workbuddy/
