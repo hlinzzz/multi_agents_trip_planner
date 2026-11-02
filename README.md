@@ -116,7 +116,3 @@ PYTHONPATH=src python -m trip_agent real "帮我规划一次2天杭州游，预�
 2. **飞猪 CLI 每次 subprocess 启动较慢**（约 2s），可考虑后续常驻进程或改用其底层 MCP 直连。
 3. **Unsplash 免费额度 50 次/小时**：超出或未配置时自动回退 Wikimedia / 渐变占位图。
 
-## ⚠️ 安全提示
-
-- 请勿将真实密钥提交到 Git。`.env` 已被 `.gitignore` 忽略，`.env.example` 中仅为占位符。
-- 若曾误提交密钥，请立即在对应平台吊销并重置。
