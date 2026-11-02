@@ -507,52 +507,63 @@ def search_attraction_photo(name: str) -> str | None:
     return _wikimedia_photo(name)
 
 
+# 常见景点中英文映射（英文搜索命中率更高、图片质量更稳定）
+_ATTRACTION_EN_MAP = {
+    "故宫": "Forbidden City Beijing", "天安门": "Tiananmen Square",
+    "颐和园": "Summer Palace Beijing", "长城": "Great Wall of China",
+    "八达岭": "Great Wall Badaling", "天坛": "Temple of Heaven Beijing",
+    "西湖": "West Lake Hangzhou", "外滩": "The Bund Shanghai",
+    "兵马俑": "Terracotta Army", "黄山": "Mount Huangshan",
+    "张家界": "Zhangjiajie", "桂林": "Guilin landscape",
+    "九寨沟": "Jiuzhaigou", "泰山": "Mount Tai",
+    "布达拉宫": "Potala Palace", "莫高窟": "Mogao Caves",
+    "鼓浪屿": "Gulangyu", "拙政园": "Humble Administrator Garden",
+    "夫子庙": "Confucius Temple Nanjing", "秦淮河": "Qinhuai River",
+    "黄鹤楼": "Yellow Crane Tower", "岳麓山": "Yuelu Mountain",
+    "豫园": "Yu Garden", "东方明珠": "Oriental Pearl Tower",
+    "恭王府": "Prince Gong Mansion", "雍和宫": "Yonghe Temple Beijing",
+    "什刹海": "Shichahai Beijing", "南锣鼓巷": "Nanluoguxiang",
+    "烟袋斜街": "Yandaixiejie Beijing", "簋街": "Guijie Beijing",
+    "前门": "Qianmen Beijing", "大栅栏": "Dashilan Beijing",
+    "天安门广场": "Tiananmen Square",
+}
+
+
 def _unsplash_photo(name: str) -> str | None:
-    """Unsplash 搜索景点图片（带鉴权）。"""
-    try:
-        resp = requests.get(
-            "https://api.unsplash.com/search/photos",
-            params={
-                "query": f"{name} landmark",
-                "per_page": 1,
-                "client_id": settings.UNSPLASH_ACCESS_KEY,
-            },
-            timeout=10,
-        )
-        resp.raise_for_status()
-        results = resp.json().get("results", [])
-        if results:
-            return results[0].get("urls", {}).get("regular")
-    except Exception:
-        pass
+    """Unsplash 搜索景点图片（带鉴权）。英文关键词优先，中文兜底。"""
+    # 构造查询顺序：英文映射优先，中文名 + landmark 兜底
+    queries = []
+    for key, en in _ATTRACTION_EN_MAP.items():
+        if key in name:
+            queries.append(en)
+    queries.append(name)
+    queries.append(f"{name} landmark")
+
+    for q in queries:
+        try:
+            resp = requests.get(
+                "https://api.unsplash.com/search/photos",
+                params={
+                    "query": q,
+                    "per_page": 1,
+                    "client_id": settings.UNSPLASH_ACCESS_KEY,
+                },
+                timeout=10,
+            )
+            resp.raise_for_status()
+            results = resp.json().get("results", [])
+            if results:
+                return results[0].get("urls", {}).get("regular")
+        except Exception:
+            continue
     return None
 
 
 def _wikimedia_photo(name: str) -> str | None:
     """Wikimedia Commons 搜索景点图片（无需鉴权）。英文关键词优先，质量更稳定。"""
-    # 常见景点中英文映射，英文搜索命中更精准（避免中文古籍扫描图）
-    en_map = {
-        "故宫": "Forbidden City Beijing", "天安门": "Tiananmen Square",
-        "颐和园": "Summer Palace Beijing", "长城": "Great Wall of China",
-        "八达岭": "Great Wall Badaling", "天坛": "Temple of Heaven Beijing",
-        "西湖": "West Lake Hangzhou", "外滩": "The Bund Shanghai",
-        "兵马俑": "Terracotta Army", "黄山": "Mount Huangshan",
-        "张家界": "Zhangjiajie", "桂林": "Guilin landscape",
-        "九寨沟": "Jiuzhaigou", "泰山": "Mount Tai",
-        "布达拉宫": "Potala Palace", "莫高窟": "Mogao Caves",
-        "鼓浪屿": "Gulangyu", "拙政园": "Humble Administrator Garden",
-        "夫子庙": "Confucius Temple Nanjing", "秦淮河": "Qinhuai River",
-        "黄鹤楼": "Yellow Crane Tower", "岳麓山": "Yuelu Mountain",
-        "豫园": "Yu Garden", "东方明珠": "Oriental Pearl Tower",
-        "恭王府": "Prince Gong Mansion", "雍和宫": "Yonghe Temple Beijing",
-        "什刹海": "Shichahai Beijing", "南锣鼓巷": "Nanluoguxiang",
-        "烟袋斜街": "Yandaixiejie Beijing", "簋街": "Guijie Beijing",
-        "前门": "Qianmen Beijing", "大栅栏": "Dashilan Beijing",
-        "天安门广场": "Tiananmen Square",
-    }
     # 构造查询顺序：英文映射优先，中文名兜底
     queries = []
-    for key, en in en_map.items():
+    for key, en in _ATTRACTION_EN_MAP.items():
         if key in name:
             queries.append(en)
     queries.append(name)
