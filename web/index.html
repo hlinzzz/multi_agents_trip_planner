@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能旅行规划助手</title>
+<style>
+  :root {
+    --bg: #F4F5FA;
+    --card: #FFFFFF;
+    --text: #1B1F27;
+    --muted: #8A919F;
+    --label: #3D4351;
+    --border: #E8EAF0;
+    --input-bg: #F7F8FB;
+    --brand: #5B5BE0;
+    --brand-2: #8A5BE0;
+    --brand-light: #EEEDFE;
+    --brand-soft: #F3F2FF;
+    --red: #E24B4A;
+    --green: #1D9E75;
+    --amber: #EF9F27;
+    --radius: 16px;
+    --shadow: 0 2px 12px rgba(30,35,70,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    line-height: 1.6;
+    background-image: radial-gradient(circle at 15% 10%, #EDECFF 0%, transparent 40%),
+                      radial-gradient(circle at 85% 0%, #E8F3FF 0%, transparent 35%);
+  }
+  .container { max-width: 920px; margin: 0 auto; }
+
+  .header { text-align: center; margin-bottom: 30px; }
+  .header .logo {
+    width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; color: #fff;
+    box-shadow: 0 6px 18px rgba(91,91,224,0.35);
+  }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  .header p { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    padding: 26px 28px;
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .card-title .ico {
+    width: 30px; height: 30px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .ico.pin { background: #FCEBEB; }
+  .ico.gear { background: var(--brand-light); }
+  .ico.chat { background: #E6F1FB; }
+
+  .field-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field label { font-size: 13px; color: var(--label); font-weight: 500; }
+  .field label .req { color: var(--red); margin-left: 2px; }
+  .field input, .field select {
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input-bg);
+    padding: 0 13px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .18s, box-shadow .18s, background .18s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(91,91,224,0.14);
+    background: #fff;
+  }
+  .date-wrap { position: relative; }
+  .date-wrap input { width: 100%; }
+  .date-wrap .cal {
+    position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 14px; pointer-events: none;
+  }
+
+  .days-btn {
+    height: 44px; border: none; border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(91,91,224,0.3);
+    transition: transform .12s;
+  }
+  .days-btn:hover { transform: translateY(-1px); }
+
+  .pref-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .pref-group { display: flex; flex-direction: column; gap: 7px; }
+  .pref-group label { font-size: 13px; color: var(--label); font-weight: 500; }
+  .pref-group select {
+    height: 44px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--input-bg); padding: 0 13px; font-size: 14px; color: var(--text); outline: none;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--input-bg);
+    font-size: 13px; color: var(--label); cursor: pointer;
+    user-select: none; transition: all .16s;
+  }
+  .chip:hover { border-color: var(--brand); }
+  .chip.active {
+    background: var(--brand-light); border-color: var(--brand); color: var(--brand);
+    font-weight: 600;
+  }
+
+  .field textarea {
+    width: 100%; min-height: 96px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--input-bg); padding: 13px;
+    font-size: 14px; color: var(--text); outline: none;
+    resize: vertical; font-family: inherit;
+    transition: border-color .18s;
+  }
+  .field textarea:focus { border-color: var(--brand); background: #fff; }
+  .field textarea::placeholder { color: #B6BCC8; }
+
+  .actions { display: flex; gap: 14px; margin-top: 6px; }
+  .btn {
+    flex: 1; height: 50px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .16s;
+  }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff; box-shadow: 0 6px 16px rgba(91,91,224,0.3);
+  }
+  .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(91,91,224,0.4); }
+  .btn.secondary { background: #fff; color: var(--label); border: 1px solid var(--border); }
+  .btn.secondary:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+
+  .result-card { display: none; }
+  .result-card.show { display: block; animation: fadeUp .4s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  .result-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
+  }
+  .result-head h2 { font-size: 18px; font-weight: 700; }
+  .badge {
+    font-size: 12px; padding: 5px 12px; border-radius: 14px;
+    background: #E1F5EE; color: var(--green); font-weight: 600;
+  }
+  .badge.over { background: #FCEBEB; color: var(--red); }
+
+  /* ===== 模块化大块 ===== */
+  .module {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .module-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #F8F8FF, #F1F3FF);
+    border-bottom: 1px solid var(--border);
+    font-size: 15px; font-weight: 700;
+  }
+  .module-head .mico { font-size: 18px; }
+  .module-head .tag {
+    margin-left: auto; font-size: 12px; font-weight: 500;
+    color: var(--muted); background: #fff; border: 1px solid var(--border);
+    padding: 3px 10px; border-radius: 12px;
+  }
+  .module-body { padding: 20px; }
+
+  /* 地图 */
+  .map-box {
+    width: 100%; height: 360px; border-radius: 10px;
+    background: #Eef0f4; overflow: hidden; position: relative;
+  }
+  .map-box .map-hint {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 13px;
+  }
+  .map-legend {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: center;
+  }
+  .map-legend .legend-item {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--label);
+  }
+  .map-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* 天气图例 */
+  .weather-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .weather-item {
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; text-align: center;
+  }
+  .weather-item .w-icon { font-size: 30px; margin-bottom: 6px; }
+  .weather-item .w-date { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .weather-item .w-cond { font-size: 14px; font-weight: 600; color: var(--text); }
+  .weather-item .w-temp { font-size: 13px; color: var(--label); margin-top: 3px; }
+  .weather-item .w-wind { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .weather-advice {
+    margin-top: 14px; padding: 12px 16px; border-radius: 10px;
+    background: #FFF7E8; border: 1px solid #FFE4B8; color: #8A5B1A; font-size: 13px;
+  }
+
+  /* 酒店/景点卡片（含图片） */
+  .hotel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .hotel-card, .spot-card {
+    display: flex; gap: 12px; border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px; background: #fff; transition: box-shadow .16s;
+  }
+  .hotel-card:hover, .spot-card:hover { box-shadow: 0 4px 14px rgba(30,35,70,0.1); }
+  .hotel-card .pic, .spot-card .pic {
+    width: 90px; height: 90px; border-radius: 9px; flex-shrink: 0;
+    object-fit: cover; background: #Eef0f4;
+  }
+  .hotel-card .info, .spot-card .info { flex: 1; min-width: 0; }
+  .hotel-card .name, .spot-card .name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .hotel-card .meta, .spot-card .meta { font-size: 12px; color: var(--muted); }
+  .hotel-card .price { font-size: 15px; color: var(--red); font-weight: 700; margin-top: 4px; }
+  .star { color: var(--amber); font-size: 12px; }
+  .spot-card .desc { font-size: 12px; color: var(--label); margin-top: 4px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* 行程按天分块 */
+  .day-block {
+    border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .day-block .day-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; font-size: 15px; font-weight: 700;
+    color: #fff;
+  }
+  .day-block .day-head .dnum {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .day-block .day-body { padding: 6px 16px; }
+  .spot-step {
+    position: relative; padding: 14px 0 14px 24px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .spot-step:last-child { border-bottom: none; }
+  .spot-step .step-dot {
+    position: absolute; left: 0; top: 20px; width: 12px; height: 12px;
+    border-radius: 50%; border: 3px solid #fff;
+    box-shadow: 0 0 0 2px var(--brand);
+  }
+  .spot-step .spot-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .spot-step .spot-time { font-size: 12px; color: var(--brand); margin-left: 8px; font-weight: 500; }
+  .spot-step .spot-intro { font-size: 13px; color: var(--label); margin-top: 4px; line-height: 1.6; }
+  .spot-step .trans-line {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: 12px; color: #4A6FA5;
+    background: #F0F5FF; border-radius: 8px; padding: 6px 10px;
+  }
+  .spot-step .food-line {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: 12px; color: #A5622A;
+    background: #FFF6EC; border-radius: 8px; padding: 6px 10px;
+  }
+  .spot-step .spot-content { display: flex; gap: 12px; }
+  .spot-step .spot-img {
+    width: 96px; height: 72px; border-radius: 9px; flex-shrink: 0;
+    object-fit: cover; background: #Eef0f4;
+  }
+  .spot-step .spot-text { flex: 1; min-width: 0; }
+
+  .empty-tip { color: var(--muted); font-size: 13px; text-align: center; padding: 16px; }
+
+  /* 预算 */
+  .budget-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .budget-table th, .budget-table td {
+    border: 1px solid var(--border); padding: 8px 10px; text-align: left;
+  }
+  .budget-table th { background: var(--brand-soft); font-weight: 600; color: var(--label); }
+  .budget-table td.detail { color: var(--label); font-size: 12px; line-height: 1.5; }
+  .budget-total {
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    margin-top: 14px; padding: 12px 16px; border-radius: 10px;
+    background: var(--brand-soft); font-size: 14px; color: var(--label);
+  }
+  .budget-total b { color: var(--text); font-size: 15px; }
+  .budget-total .ok { color: var(--green); font-weight: 600; }
+  .budget-total .over { color: var(--red); font-weight: 600; }
+  .green { color: var(--green); font-weight: 600; }
+  .red { color: var(--red); font-weight: 600; }
+
+  /* 左侧导航栏 */
+  .layout { display: flex; gap: 22px; align-items: flex-start; }
+  .sidebar {
+    position: sticky; top: 24px; width: 168px; flex-shrink: 0;
+    display: none;
+  }
+  .sidebar.show { display: block; }
+  .sidebar .nav-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .sidebar .nav-title {
+    padding: 14px 16px; font-size: 13px; font-weight: 700; color: var(--label);
+    background: linear-gradient(135deg, #F8F8FF, #F1F3FF);
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 16px; font-size: 13px; color: var(--label);
+    cursor: pointer; border-bottom: 1px solid #F3F4F8;
+    transition: all .14s;
+  }
+  .sidebar .nav-item:last-child { border-bottom: none; }
+  .sidebar .nav-item:hover { background: var(--brand-soft); color: var(--brand); }
+  .sidebar .nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+  .sidebar .nav-item .nav-ico { font-size: 15px; }
+  .content { flex: 1; min-width: 0; }
+
+  /* 结果正文（Markdown 兜底） */
+  .result-body {
+    font-size: 14px; color: #333; line-height: 1.75;
+  }
+  .result-body h1, .result-body h2, .result-body h3 {
+    color: var(--text); margin: 18px 0 8px; font-weight: 600;
+  }
+  .result-body table {
+    width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;
+  }
+  .result-body th, .result-body td {
+    border: 1px solid var(--border); padding: 8px 10px; text-align: left;
+  }
+  .result-body ul, .result-body ol { padding-left: 22px; margin: 8px 0; }
+
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+    border-radius: 50%; animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    .field-row { grid-template-columns: 1fr 1fr; }
+    .pref-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">✈️</div>
+    <h1>智能旅行规划助手</h1>
+    <p>多智能体协作 · 景点搜索 · 天气 · 酒店 · 交通 · 餐饮 · 预算</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ico pin">📍</span>目的地与日期</div>
+    <div class="field-row">
+      <div class="field">
+        <label>出发城市<span class="req">*</span></label>
+        <input type="text" id="startCity" placeholder="如：上海">
+      </div>
+      <div class="field">
+        <label>目的地城市<span class="req">*</span></label>
+        <input type="text" id="destination" placeholder="如：北京">
+      </div>
+      <div class="field">
+        <label>开始日期<span class="req">*</span></label>
+        <div class="date-wrap">
+          <input type="date" id="startDate">
+          <span class="cal">📅</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>归来日期<span class="req">*</span></label>
+        <div class="date-wrap">
+          <input type="date" id="endDate">
+          <span class="cal">📅</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>旅行天数</label>
+        <button class="days-btn" id="daysBtn">⏳ <span id="daysText">- 天</span></button>
+      </div>
+      <div class="field">
+        <label>出行人数<span class="req">*</span></label>
+        <input type="number" id="people" value="1" min="1" max="50">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ico gear">⚙️</span>偏好设置</div>
+    <div class="pref-grid">
+      <div class="pref-group">
+        <label>交通方式</label>
+        <select id="transport">
+          <option>🚄 高铁为主</option>
+          <option>✈️ 飞机 + 高铁</option>
+          <option>🚌 公共交通</option>
+          <option>🚗 自驾</option>
+        </select>
+      </div>
+      <div class="pref-group">
+        <label>住宿偏好</label>
+        <select id="hotel">
+          <option>🏨 舒适型酒店</option>
+          <option>🏨 经济型酒店</option>
+          <option>🏰 高档酒店</option>
+          <option>🏡 民宿/客栈</option>
+        </select>
+      </div>
+      <div class="pref-group">
+        <label>旅行偏好</label>
+        <div class="chips" id="prefChips">
+          <span class="chip" data-v="历史文化">🏛️ 历史文化</span>
+          <span class="chip active" data-v="自然风光">🏞️ 自然风光</span>
+          <span class="chip" data-v="美食">🍜 美食</span>
+          <span class="chip" data-v="购物">🛍️ 购物</span>
+          <span class="chip" data-v="艺术">🎨 艺术</span>
+          <span class="chip" data-v="休闲">🏖️ 休闲</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="ico chat">💬</span>额外要求</div>
+    <div class="field">
+      <textarea id="extra" placeholder="请输入您的额外要求，例如：想去看升旗、需要无障碍设施、对海鲜过敏等..."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label>旅行预算（元，可选）</label>
+      <input type="number" id="budget" placeholder="如：3000" min="0" step="100">
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn secondary" id="resetBtn">🔄 重置</button>
+    <button class="btn primary" id="submitBtn">✨ 生成旅行规划</button>
+  </div>
+
+  <div class="layout" id="layout">
+    <div class="sidebar" id="sidebar">
+      <div class="nav-card">
+        <div class="nav-title">📋 内容导航</div>
+        <div id="navItems"></div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card result-card" id="resultCard">
+        <div class="result-head">
+          <h2>🗺️ 您的旅行规划</h2>
+          <span class="badge" id="budgetBadge" style="display:none"></span>
+        </div>
+        <div id="modules"></div>
+        <div class="result-body" id="resultBody" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const startCity = document.getElementById('startCity');
+  const destination = document.getElementById('destination');
+  const startDate = document.getElementById('startDate');
+  const endDate = document.getElementById('endDate');
+  const daysBtn = document.getElementById('daysBtn');
+  const daysText = document.getElementById('daysText');
+  const people = document.getElementById('people');
+  const budget = document.getElementById('budget');
+  const prefChips = document.getElementById('prefChips');
+  const submitBtn = document.getElementById('submitBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const resultCard = document.getElementById('resultCard');
+  const modules = document.getElementById('modules');
+  const resultBody = document.getElementById('resultBody');
+  const budgetBadge = document.getElementById('budgetBadge');
+
+  let mapInstance = null;
+  let amapLoaded = false;
+
+  function calcDays() {
+    if (startDate.value && endDate.value) {
+      const s = new Date(startDate.value);
+      const e = new Date(endDate.value);
+      const diff = Math.round((e - s) / 86400000) + 1;
+      if (diff > 0) { daysText.textContent = diff + ' 天'; return diff; }
+    }
+    daysText.textContent = '- 天';
+    return 0;
+  }
+  startDate.addEventListener('change', calcDays);
+  endDate.addEventListener('change', calcDays);
+
+  prefChips.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('active'));
+  });
+
+  resetBtn.addEventListener('click', () => {
+    startCity.value = '';
+    destination.value = '';
+    startDate.value = '';
+    endDate.value = '';
+    people.value = '1';
+    budget.value = '';
+    daysText.textContent = '- 天';
+    prefChips.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    prefChips.querySelector('[data-v="自然风光"]').classList.add('active');
+    document.getElementById('transport').selectedIndex = 0;
+    document.getElementById('hotel').selectedIndex = 0;
+    document.getElementById('extra').value = '';
+    resultCard.classList.remove('show');
+    modules.innerHTML = '';
+    resultBody.style.display = 'none';
+    document.getElementById('sidebar').classList.remove('show');
+    document.getElementById('navItems').innerHTML = '';
+    mapInstance = null;
+  });
+
+  function buildPrompt() {
+    const from = startCity.value.trim();
+    const dest = destination.value.trim();
+    const days = calcDays();
+    const num = people.value.trim() || '1';
+    const prefs = [...prefChips.querySelectorAll('.chip.active')].map(c => c.dataset.v).join('、');
+    const transport = document.getElementById('transport').value.replace(/^[^\s]+\s/, '');
+    const hotel = document.getElementById('hotel').value.replace(/^[^\s]+\s/, '');
+    const extra = document.getElementById('extra').value.trim();
+    const money = budget.value.trim();
+
+    let p = '帮我规划一次' + (from ? '从' + from + '出发的' : '') + (days > 0 ? days + '天' : '') + (dest ? dest + '游' : '旅行');
+    p += '，' + num + '人同行';
+    if (money) p += '，预算' + money + '元';
+    if (prefs) p += '，偏好' + prefs;
+    if (transport) p += '，交通方式' + transport;
+    if (hotel) p += '，住宿偏好' + hotel;
+    if (extra) p += '，额外要求：' + extra;
+    return p;
+  }
+
+  // ===== 天气图标映射 =====
+  function weatherIcon(cond) {
+    if (!cond) return '🌤️';
+    if (/晴/.test(cond)) return '☀️';
+    if (/多云|阴/.test(cond)) return '⛅';
+    if (/雨|雷/.test(cond)) return '🌧️';
+    if (/雪/.test(cond)) return '❄️';
+    if (/雾|霾/.test(cond)) return '🌫️';
+    return '🌤️';
+  }
+
+  // ===== 分天颜色 =====
+  const DAY_COLORS = ['#5B5BE0', '#E24B4A', '#1D9E75', '#EF9F27', '#2F80ED', '#9B51E0', '#00A5A8', '#F2994A'];
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // 金额格式化（数字补 ¥，字符串原样）
+  function fmtMoney(v) {
+    if (v == null || v === '') return '—';
+    if (typeof v === 'number') return '¥' + v.toLocaleString('zh-CN');
+    const s = String(v);
+    if (/^[0-9.]+$/.test(s)) return '¥' + Number(s).toLocaleString('zh-CN');
+    return s;
+  }
+
+  // 差额格式化（负数为绿色表示节省）
+  function fmtDiff(v) {
+    if (v == null || v === '') return '—';
+    const n = typeof v === 'number' ? v : Number(String(v).replace(/[^0-9.-]/g, ''));
+    if (isNaN(n)) return String(v);
+    const cls = n < 0 ? 'green' : (n > 0 ? 'red' : '');
+    const sign = n > 0 ? '+' : '';
+    return `<span class="${cls}">${sign}¥${Math.abs(n).toLocaleString('zh-CN')}</span>`;
+  }
+
+  // 渐变色占位图（真实图片加载前/失败时显示，带景点名，视觉统一不突兀）
+  const PLACEHOLDER_COLORS = [
+    ['#667eea', '#764ba2'], ['#f093fb', '#f5576c'], ['#4facfe', '#00f2fe'],
+    ['#43e97b', '#38f9d7'], ['#fa709a', '#fee140'], ['#a18cd1', '#fbc2eb'],
+  ];
+  function placeholderImage(name, index) {
+    const [c1, c2] = PLACEHOLDER_COLORS[(index || 0) % PLACEHOLDER_COLORS.length];
+    const label = (name || '景点').slice(0, 6);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300">
+      <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:${c1}"/><stop offset="100%" style="stop-color:${c2}"/>
+      </linearGradient></defs>
+      <rect width="400" height="300" fill="url(#g)"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold" fill="rgba(255,255,255,0.9)">${esc(label)}</text>
+    </svg>`;
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  }
+
+  // ===== 模块构建 =====
+  function moduleCard(icon, title, tag, innerHtml, anchor) {
+    return `<div class="module" id="mod-${anchor || ''}">
+      <div class="module-head"><span class="mico">${icon}</span>${esc(title)}${tag ? '<span class="tag">' + esc(tag) + '</span>' : ''}</div>
+      <div class="module-body">${innerHtml}</div>
+    </div>`;
+  }
+
+  function renderStructured(data) {
+    const s = data.structured || {};
+    let html = '';
+    const navItems = [];  // 收集导航项 {anchor, icon, title}
+    const itin = s.itinerary;
+    const hasItinerary = itin && typeof itin === 'object' && Object.keys(itin).length > 0;
+
+    // 1. 行程（按天分块）—— 最重要，放最前
+    if (hasItinerary) {
+      let dayHtml = '';
+      const dayKeys = Object.keys(itin);
+      dayKeys.forEach((day, di) => {
+        const spots = itin[day] || [];
+        const color = DAY_COLORS[di % DAY_COLORS.length];
+        let steps = '';
+        spots.forEach((sp, si) => {
+          if (typeof sp !== 'object' || !sp) return;
+          // 景点图：一律用渐变占位图起手，稍后异步加载真实照片（Wikimedia/Unsplash）
+          // 不再用飞猪营销图（那是酒店/商品图，放景点上很违和）
+          const pic = `<img class="spot-img" src="${placeholderImage(sp.name, si + di * 10)}" alt="${esc(sp.name)}" data-photo-name="${esc(sp.name)}" onerror="this.src=placeholderImage(this.dataset.photoName, ${si + di * 10})">`;
+          steps += `<div class="spot-step">
+            <div class="step-dot" style="background:${color}"></div>
+            <div class="spot-content">
+              ${pic}
+              <div class="spot-text">
+                <span class="spot-name">${esc(sp.name || '景点')}</span>
+                ${sp.time ? '<span class="spot-time">' + esc(sp.time) + '</span>' : ''}
+                ${sp.intro ? '<div class="spot-intro">' + esc(sp.intro) + '</div>' : ''}
+                ${sp.transport ? '<div class="trans-line">🚌 ' + esc(sp.transport) + '</div>' : ''}
+                ${sp.food ? '<div class="food-line">🍜 ' + esc(sp.food) + '</div>' : ''}
+              </div>
+            </div>
+          </div>`;
+        });
+        dayHtml += `<div class="day-block">
+          <div class="day-head" style="background:${color}"><span class="dnum">${di + 1}</span>${esc(day)}</div>
+          <div class="day-body">${steps}</div>
+        </div>`;
+      });
+      html += moduleCard('🗓️', '每日行程', dayKeys.length + ' 天', dayHtml, 'itinerary');
+      navItems.push({ anchor: 'itinerary', icon: '🗓️', title: '每日行程' });
+    }
+
+    // 2. 地图
+    if (data.amap_js_key) {
+      html += moduleCard('🗺️', '行程地图', '按天标记', '<div class="map-box" id="mapBox"><div class="map-hint">加载地图中…</div></div><div class="map-legend" id="mapLegend"></div>', 'map');
+      navItems.push({ anchor: 'map', icon: '🗺️', title: '行程地图' });
+    }
+
+    // 3. 天气（含图例）
+    const weather = s.weather;
+    if (weather) {
+      // 兼容嵌套结构：weather.days / weather.weather.days / weather.forecasts
+      const wObj = weather.weather && typeof weather.weather === 'object' ? weather.weather : weather;
+      let days = (wObj.days && wObj.days.length) ? wObj.days : (wObj.forecasts || wObj.casts || []);
+      let advice = weather.advice || wObj.advice || '';
+      let wHtml = '';
+      if (Array.isArray(days) && days.length) {
+        wHtml = '<div class="weather-grid">' + days.map(d => `
+          <div class="weather-item">
+            <div class="w-icon">${weatherIcon(d.weather || d.condition)}</div>
+            <div class="w-date">${esc(d.date || d.week || '')}</div>
+            <div class="w-cond">${esc(d.weather || d.condition || '')}</div>
+            <div class="w-temp">${esc(d.temp || d.temperature || '')}</div>
+            <div class="w-wind">${esc(d.wind || d.windpower || '')}</div>
+          </div>`).join('') + '</div>';
+      } else {
+        wHtml = '<div class="empty-tip">' + esc(JSON.stringify(weather).slice(0, 200)) + '</div>';
+      }
+      if (advice) {
+        wHtml += '<div class="weather-advice">💡 ' + esc(advice) + '</div>';
+      }
+      html += moduleCard('🌤️', '天气预报', '含穿衣建议', wHtml, 'weather');
+      navItems.push({ anchor: 'weather', icon: '🌤️', title: '天气预报' });
+    }
+
+    // 4. 酒店（含图片）
+    const hotels = s.hotels || [];
+    if (hotels.length) {
+      let hHtml = '<div class="hotel-grid">' + hotels.map(h => `
+        <div class="hotel-card">
+          ${h.image ? '<img class="pic" src="' + esc(h.image) + '" alt="' + esc(h.name) + '" onerror="this.style.display=\'none\'">' : '<div class="pic"></div>'}
+          <div class="info">
+            <div class="name">${esc(h.name)}</div>
+            ${h.star ? '<div class="star">' + '★'.repeat(Math.min(5, parseInt(h.star) || 0)) + ' ' + esc(h.star) + '</div>' : ''}
+            ${h.nearby ? '<div class="meta">📍 ' + esc(h.nearby) + '</div>' : ''}
+            ${h.price ? '<div class="price">' + esc(h.price) + '/晚</div>' : ''}
+          </div>
+        </div>`).join('') + '</div>';
+      html += moduleCard('🏨', '酒店推荐', hotels.length + ' 家', hHtml, 'hotel');
+      navItems.push({ anchor: 'hotel', icon: '🏨', title: '酒店推荐' });
+    }
+
+    // 5. 交通
+    const trains = s.trains || [];
+    if (trains.length) {
+      let tHtml = '<table class="budget-table"><tr><th>车次</th><th>出发</th><th>到达</th><th>票价(人)</th><th>小计(' + esc(data.people || 1) + '人)</th></tr>' +
+        trains.map(t => {
+          const pp = t.price_per_person ?? t.price ?? t.ticket_price ?? '';
+          const total = t.price_total ?? '';
+          return `<tr><td>${esc(t.train_no || t.name || '')}</td><td>${esc(t.depart || t.from || '')}</td><td>${esc(t.arrive || t.to || '')}</td><td>${fmtMoney(pp)}</td><td>${total ? fmtMoney(total) : '—'}</td></tr>`;
+        }).join('') +
+        '</table>';
+      html += moduleCard('🚄', '交通方案', trains.length + ' 趟', tHtml, 'traffic');
+      navItems.push({ anchor: 'traffic', icon: '🚄', title: '交通方案' });
+    }
+
+    // 6. 预算
+    const bd = s.budget;
+    if (bd) {
+      const breakdown = bd.breakdown;
+      let bHtml = '';
+      if (breakdown && typeof breakdown === 'object') {
+        // 判断是嵌套对象还是扁平数字
+        const entries = Object.entries(breakdown);
+        const isNested = entries.some(([k, v]) => v && typeof v === 'object' && !Array.isArray(v));
+        if (isNested) {
+          // 嵌套：每个项目含 预分配/实际/明细/差额
+          bHtml = '<table class="budget-table"><tr><th>项目</th><th>预分配</th><th>实际核算</th><th>差额</th><th>明细</th></tr>';
+          for (const [k, v] of entries) {
+            if (v && typeof v === 'object') {
+              const pre = v['经验预分配'] ?? v['预分配'] ?? v['pre'] ?? '';
+              const act = v['实际核算'] ?? v['实际'] ?? v['actual'] ?? '';
+              const diff = v['差额'] ?? v['diff'] ?? '';
+              const detail = v['明细'] ?? v['detail'] ?? '';
+              bHtml += `<tr><td><strong>${esc(k)}</strong></td><td>${fmtMoney(pre)}</td><td>${fmtMoney(act)}</td><td>${fmtDiff(diff)}</td><td class="detail">${esc(detail)}</td></tr>`;
+            } else {
+              bHtml += `<tr><td><strong>${esc(k)}</strong></td><td colspan="4">${fmtMoney(v)}</td></tr>`;
+            }
+          }
+          bHtml += '</table>';
+        } else {
+          // 扁平数字
+          bHtml = '<table class="budget-table"><tr><th>项目</th><th>金额</th></tr>' +
+            entries.map(([k, v]) => `<tr><td><strong>${esc(k)}</strong></td><td>${fmtMoney(v)}</td></tr>`).join('') + '</table>';
+        }
+        // 总计行
+        const totalBudget = bd['总预算'] ?? bd['total_budget'] ?? bd.total_budget ?? '';
+        const totalActual = bd['总实际'] ?? bd['total_actual'] ?? bd.total_actual ?? '';
+        if (totalBudget || totalActual) {
+          const numActual = Number(String(totalActual).replace(/[^0-9.-]/g, ''));
+          const numBudget = Number(String(totalBudget).replace(/[^0-9.-]/g, ''));
+          const isOver = !isNaN(numActual) && !isNaN(numBudget) && numActual > numBudget;
+          bHtml += `<div class="budget-total">
+            <span>总预算：<b>${fmtMoney(totalBudget)}</b></span>
+            <span>实际合计：<b>${fmtMoney(totalActual)}</b></span>
+            <span class="${isOver ? 'over' : 'ok'}">${isOver ? '⚠️ 超支' : '✅ 未超支'}</span>
+          </div>`;
+        }
+      } else {
+        bHtml = '<div class="empty-tip">' + esc(JSON.stringify(bd).slice(0, 300)) + '</div>';
+      }
+      if (bd.suggestion) bHtml += '<div class="weather-advice">📝 ' + esc(bd.suggestion) + '</div>';
+      html += moduleCard('💰', '预算核算', bd.over_budget ? '超支' : '预算内', bHtml, 'budget');
+      navItems.push({ anchor: 'budget', icon: '💰', title: '预算核算' });
+    }
+
+    // 7. 景点（含图片，作为补充）
+    const attractions = s.attractions || [];
+    if (attractions.length && !hasItinerary) {
+      let aHtml = '<div class="hotel-grid">' + attractions.map((a, ai) => `
+        <div class="spot-card">
+          <img class="pic" src="${placeholderImage(a.name, ai)}" alt="${esc(a.name)}" data-photo-name="${esc(a.name)}" onerror="this.src=placeholderImage(this.dataset.photoName, ${ai})">
+          <div class="info">
+            <div class="name">${esc(a.name)}</div>
+            ${a.type ? '<div class="meta">' + esc(a.type) + '</div>' : ''}
+            ${a.ticket ? '<div class="meta">🎫 ' + esc(a.ticket) + '</div>' : ''}
+            ${a.intro ? '<div class="desc">' + esc(a.intro) + '</div>' : ''}
+          </div>
+        </div>`).join('') + '</div>';
+      html += moduleCard('🏛️', '景点概览', attractions.length + ' 个', aHtml, 'attraction');
+      navItems.push({ anchor: 'attraction', icon: '🏛️', title: '景点概览' });
+    }
+
+    return { html, navItems };
+  }
+
+  // ===== 地图渲染（按天分色 + 路线 + 信息窗） =====
+  function renderMap(amapJsKey, city, structured) {
+    if (!amapJsKey) return;
+    window._amapInit = function() {
+      if (!window.AMap) return;
+      amapLoaded = true;
+      const mapBox = document.getElementById('mapBox');
+      if (!mapBox) return;
+      mapBox.innerHTML = '';
+
+      // 关键：确保容器有尺寸后再初始化地图（否则地图空白）
+      if (mapBox.clientHeight === 0) {
+        // 容器尚未布局完成，延迟一帧再初始化
+        requestAnimationFrame(() => window._amapInit());
+        return;
+      }
+
+      mapInstance = new AMap.Map('mapBox', {
+        zoom: 12,
+        center: [116.397428, 39.90923],
+        viewMode: '2D',
+      });
+
+      // 收集所有带坐标的景点，按天分组
+      const itin = structured.itinerary;
+      const legendBox = document.getElementById('mapLegend');
+      const markers = [];
+      const dayGroups = {};  // { dayIndex: [景点] }
+      let legendHtml = '';
+
+      if (itin && typeof itin === 'object') {
+        const dayKeys = Object.keys(itin);
+        dayKeys.forEach((day, di) => {
+          const color = DAY_COLORS[di % DAY_COLORS.length];
+          const spots = itin[day] || [];
+          legendHtml += `<span class="legend-item"><span class="dot" style="background:${color}"></span>${esc(day)}</span>`;
+          dayGroups[di] = [];
+          spots.forEach((sp, si) => {
+            if (!sp || !sp.location) return;
+            const parts = String(sp.location).split(',');
+            if (parts.length < 2) return;
+            const lng = parseFloat(parts[0]);
+            const lat = parseFloat(parts[1]);
+            if (isNaN(lng) || isNaN(lat)) return;
+
+            const marker = new AMap.Marker({
+              position: [lng, lat],
+              title: sp.name,
+              anchor: 'bottom-center',
+            });
+            // 用圆形彩色标记 + 编号
+            marker.setContent(
+              `<div style="background:${color};color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">${si + 1}</div>`
+            );
+            marker.setLabel({
+              offset: new AMap.Pixel(0, -28),
+              content: `<div style="background:${color};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.25);">${esc(sp.name)}</div>`
+            });
+
+            // 点击显示信息窗
+            marker.on('click', () => {
+              const info = new AMap.InfoWindow({
+                content: `<div style="padding:8px 12px;max-width:240px;">
+                  <div style="font-weight:600;margin-bottom:4px;">${esc(sp.name)}</div>
+                  ${sp.time ? '<div style="font-size:12px;color:#5B5BE0;">' + esc(sp.time) + '</div>' : ''}
+                  ${sp.intro ? '<div style="font-size:12px;color:#666;line-height:1.5;">' + esc(sp.intro) + '</div>' : ''}
+                </div>`,
+                offset: new AMap.Pixel(0, -30),
+              });
+              info.open(mapInstance, marker.getPosition());
+            });
+
+            markers.push(marker);
+            dayGroups[di].push({ name: sp.name, lng, lat });
+          });
+        });
+        if (legendBox) legendBox.innerHTML = legendHtml;
+      }
+
+      // 批量添加标记
+      if (markers.length) {
+        mapInstance.add(markers);
+        mapInstance.setFitView(markers, false, [60, 60, 60, 60]);
+      }
+
+      // 按天绘制路线（连接同一天内的景点）
+      Object.values(dayGroups).forEach(group => {
+        if (group.length < 2) return;
+        const path = group.map(p => [p.lng, p.lat]);
+        const polyline = new AMap.Polyline({
+          path: path,
+          strokeColor: '#5B5BE0',
+          strokeWeight: 4,
+          strokeOpacity: 0.7,
+          strokeStyle: 'solid',
+          showDir: true,
+          lineJoin: 'round',
+        });
+        mapInstance.add(polyline);
+      });
+
+      // 有城市时，用地理编码居中（标记已定位时优先 setFitView）
+      if (city && markers.length === 0) {
+        const geocoder = new AMap.Geocoder({ city: city });
+        geocoder.getLocation(city, function(status, result) {
+          if (status === 'complete' && result.geocodes.length) {
+            const lnglat = result.geocodes[0].location;
+            mapInstance.setCenter([lnglat.lng, lnglat.lat]);
+          }
+        });
+      }
+    };
+    if (!amapLoaded) {
+      const script = document.createElement('script');
+      script.src = 'https://webapi.amap.com/maps?v=2.0&key=' + amapJsKey + '&callback=_amapInit';
+      script.onerror = function() {
+        const mapBox = document.getElementById('mapBox');
+        if (mapBox) mapBox.innerHTML = '<div class="map-hint">地图脚本加载失败</div>';
+      };
+      document.head.appendChild(script);
+    } else {
+      window._amapInit();
+    }
+  }
+
+  // ===== 左侧导航栏 =====
+  function renderNav(navItems) {
+    const sidebar = document.getElementById('sidebar');
+    const navBox = document.getElementById('navItems');
+    if (!navItems || !navItems.length) {
+      sidebar.classList.remove('show');
+      return;
+    }
+    navBox.innerHTML = navItems.map((item, i) => `
+      <div class="nav-item" data-anchor="${esc(item.anchor)}">
+        <span class="nav-ico">${item.icon}</span>${esc(item.title)}
+      </div>`).join('');
+    sidebar.classList.add('show');
+
+    // 点击滚动到对应模块
+    navBox.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const target = document.getElementById('mod-' + el.dataset.anchor);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // 高亮当前项
+          navBox.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+          el.classList.add('active');
+        }
+      });
+    });
+  }
+
+  // ===== 异步加载景点真实图片（Unsplash/Wikimedia） =====
+  function loadAttractionPhotos() {
+    document.querySelectorAll('img[data-photo-name]').forEach(img => {
+      const name = img.dataset.photoName;
+      if (!name || img.dataset.photoLoading) return;
+      img.dataset.photoLoading = '1';
+      fetch('/api/photo?name=' + encodeURIComponent(name))
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data && data.data.photo_url) {
+            img.src = data.data.photo_url;
+            img.dataset.photoLoaded = '1';
+          }
+        })
+        .catch(() => { /* 保持占位图 */ });
+    });
+  }
+
+  // 滚动时高亮当前模块
+  window.addEventListener('scroll', () => {
+    const navBox = document.getElementById('navItems');
+    if (!navBox) return;
+    const items = navBox.querySelectorAll('.nav-item');
+    if (!items.length) return;
+    let current = '';
+    items.forEach(el => {
+      const target = document.getElementById('mod-' + el.dataset.anchor);
+      if (target) {
+        const rect = target.getBoundingClientRect();
+        if (rect.top <= 120 && rect.bottom >= 120) {
+          current = el.dataset.anchor;
+        }
+      }
+    });
+    if (current) {
+      items.forEach(el => {
+        el.classList.toggle('active', el.dataset.anchor === current);
+      });
+    }
+  });
+
+  // 简单 Markdown 渲染（兜底，当结构化结果缺失时用）
+  function renderMarkdown(md) {
+    if (!md) return '<p>（无结果）</p>';
+    const lines = md.split('\n');
+    let html = '';
+    let inTable = false, tableHtml = '';
+    function inline(s) {
+      return esc(s).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    }
+    for (let line of lines) {
+      const t = line.trim();
+      if (/^\|.*\|$/.test(t)) {
+        const cells = t.slice(1, -1).split('|').map(c => c.trim());
+        if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue;
+        if (!inTable) { inTable = true; tableHtml = '<table>'; }
+        tableHtml += '<tr>' + cells.map(c => `<td>${inline(c)}</td>`).join('') + '</tr>';
+        continue;
+      } else if (inTable) { inTable = false; html += tableHtml + '</table>'; }
+      if (t.startsWith('### ')) html += '<h3>' + inline(t.slice(4)) + '</h3>';
+      else if (t.startsWith('## ')) html += '<h2>' + inline(t.slice(3)) + '</h2>';
+      else if (t.startsWith('# ')) html += '<h1>' + inline(t.slice(2)) + '</h1>';
+      else if (/^[-*] /.test(t)) html += '<li>' + inline(t.slice(2)) + '</li>';
+      else if (/^\d+\. /.test(t)) html += '<li>' + inline(t.replace(/^\d+\. /,'')) + '</li>';
+      else if (t === '') html += '';
+      else html += '<p>' + inline(t) + '</p>';
+    }
+    if (inTable) html += tableHtml + '</table>';
+    return html;
+  }
+
+  submitBtn.addEventListener('click', async () => {
+    if (!startCity.value.trim()) {
+      alert('请填写出发城市');
+      startCity.focus();
+      return;
+    }
+    if (!destination.value.trim()) {
+      alert('请填写目的地城市');
+      destination.focus();
+      return;
+    }
+    if (!startDate.value || !endDate.value) {
+      alert('请选择开始和归来日期');
+      return;
+    }
+    const prompt = buildPrompt();
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> 规划中，请稍候（约1分钟）...';
+    resultCard.classList.remove('show');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 200000);
+
+    try {
+      const resp = await fetch('/api/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || '规划失败');
+
+      // 优先用结构化模块渲染
+      const rendered = renderStructured(data);
+      const structuredHtml = rendered.html;
+      if (structuredHtml.trim()) {
+        modules.innerHTML = structuredHtml;
+        resultBody.style.display = 'none';
+        renderNav(rendered.navItems);
+      } else {
+        modules.innerHTML = '';
+        resultBody.style.display = 'block';
+        resultBody.innerHTML = renderMarkdown(data.answer || data.final_answer);
+        renderNav([]);
+      }
+      resultCard.classList.add('show');
+
+      // 预算徽标
+      if (data.over_budget !== undefined) {
+        budgetBadge.style.display = 'inline-block';
+        budgetBadge.textContent = data.over_budget ? '已超预算' : '预算内';
+        budgetBadge.className = 'badge' + (data.over_budget ? ' over' : '');
+      }
+
+      // 地图（延迟到下一帧，确保容器已布局完成）
+      if (data.amap_js_key) {
+        requestAnimationFrame(() => {
+          renderMap(data.amap_js_key, data.destination, data.structured || {});
+        });
+      }
+
+      // 异步加载景点真实图片（Unsplash/Wikimedia）
+      loadAttractionPhotos();
+
+      resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        alert('规划超时（超过200秒），请简化需求或稍后重试');
+      } else {
+        alert('生成失败：' + err.message);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '✨ 生成旅行规划';
+    }
+  });
+</script>
+</body>
+</html>
