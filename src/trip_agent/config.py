@@ -35,13 +35,5 @@ class Settings:
     # 飞猪（通过 flyai-cli 调用）
     FLYAI_API_KEY: str = os.getenv("FLYAI_API_KEY", "")
 
-    # 12306 MCP 路径
-    MCP_12306_DIR: str = os.getenv(
-        "MCP_12306_DIR", "E:/wb_workplace/2026-11-01-23-37-15/mcp-12306"
-    )
-    MCP_12306_SRC: str = os.getenv(
-        "MCP_12306_SRC", "E:/wb_workplace/2026-11-01-23-37-15/mcp-12306/src"
-    )
-
 
 settings = Settings()

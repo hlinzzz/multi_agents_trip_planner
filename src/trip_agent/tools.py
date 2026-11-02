@@ -1,20 +1,17 @@
 """工具层：接入并统一管理所有外部工具。
 
-三类工具来源：
-1. 12306 —— 通过 langchain-mcp-adapters 的 MultiServerMCPClient 接入 MCP 服务
-2. 高德地图 —— 用 @tool 封装 Web 服务 HTTP API（POI 搜索 / 天气 / 路径规划）
-3. 飞猪 —— 用 @tool 封装 flyai 开放平台 HTTP API
+两类工具来源：
+1. 高德地图 —— 用 @tool 封装 Web 服务 HTTP API（POI 搜索 / 天气 / 路径规划 / 美食）
+2. 飞猪 —— 用 @tool 封装 flyai 开放平台（酒店 / 车次 / 景点）
 
 提供统一入口：
-- build_tools(): 启动所有 MCP 客户端并返回全部工具（真实模式）
+- load_tools(): 返回全部真实工具（真实模式）
 - build_mock_tools(): 返回 mock 工具（无凭证时本地跑通用）
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-import sys
 import threading
 from typing import Any
 
@@ -370,7 +367,7 @@ def fliggy_search_train(
     sort_type: str = "8",
     seat_class_name: str = "second class",
 ) -> str:
-    """搜索火车票（飞猪，可作 12306 的价格对比补充）。
+    """搜索火车票（飞猪，实时真实车次与票价）。
 
     Args:
         origin: 出发城市或车站，如 "北京"
@@ -450,38 +447,6 @@ def fliggy_search_poi(
         return json.dumps({"count": len(spots), "spots": spots}, ensure_ascii=False)
     except (json.JSONDecodeError, TypeError):
         return raw
-
-
-# ============================================================
-# 12306 MCP 工具接入
-# ============================================================
-
-def _build_12306_mcp_client():
-    """构造 12306 MCP 客户端（stdio 模式）。"""
-    from langchain_mcp_adapters.client import MultiServerMCPClient
-
-    # 优先用 E:/python/python.exe（3.12，已装 mcp 1.30.0）
-    python_exe = os.environ.get(
-        "TRIP_PYTHON", "E:/python/python.exe"
-    )
-    return MultiServerMCPClient(
-        {
-            "12306": {
-                "transport": "stdio",
-                "command": python_exe,
-                "args": ["-m", "mcp_12306.server"],
-                "cwd": settings.MCP_12306_DIR,
-                "env": {
-                    "PYTHONPATH": settings.MCP_12306_SRC,
-                    # 透传登录 Cookie 相关环境变量
-                    "RAIL_EXPIRATION": os.getenv("RAIL_EXPIRATION", ""),
-                    "RAIL_DEVICEID": os.getenv("RAIL_DEVICEID", ""),
-                    "RAIL_USERID": os.getenv("RAIL_USERID", ""),
-                    "BIGipServerotn": os.getenv("BIGipServerotn", ""),
-                },
-            }
-        }
-    )
 
 
 # ============================================================
@@ -620,23 +585,14 @@ def _wikimedia_photo(name: str) -> str | None:
 # 统一工具组装入口
 # ============================================================
 
-async def load_tools(include_12306: bool = False) -> list:
-    """启动 MCP 客户端并返回全部真实工具。
+async def load_tools() -> list:
+    """返回全部真实工具（高德 + 飞猪）。
 
-    Args:
-        include_12306: 是否加载 12306 MCP 工具。默认 False，因为 12306 无登录态
-            时 query_tickets 可能长时间挂起（风控），拖垮整个编排。需要精确
-            时刻表/余票时再开启，并先在 .env 配置 RAIL_* Cookie。
-
-    返回的工具列表可直接作为 Agent 的工具集。调用方负责在结束后关闭客户端。
+    返回的工具列表可直接作为 Agent 的工具集。
     """
     amap_tools = [amap_search_poi, amap_weather, amap_route_planning, amap_search_food]
     fliggy_tools = [fliggy_search_hotel, fliggy_search_train, fliggy_search_poi]
-    if not include_12306:
-        return amap_tools + fliggy_tools
-    client = _build_12306_mcp_client()
-    mcp_tools = await client.get_tools()
-    return amap_tools + fliggy_tools + mcp_tools
+    return amap_tools + fliggy_tools
 
 
 def build_mock_tools() -> list:
@@ -644,17 +600,17 @@ def build_mock_tools() -> list:
     from langchain_core.tools import tool as _tool
 
     @_tool
-    def mock_query_tickets(
-        from_station: str, to_station: str, date: str
+    def mock_search_train(
+        origin: str, destination: str = "", dep_date: str = ""
     ) -> str:
-        """Mock：查询车次余票。"""
+        """Mock：查询车次。"""
         return json.dumps(
             {
                 "count": 2,
                 "trains": [
-                    {"train_no": "G101", "from": from_station, "to": to_station,
+                    {"train_no": "G101", "from": origin, "to": destination,
                      "depart_time": "08:00", "arrive_time": "13:00", "price": 553.5},
-                    {"train_no": "G103", "from": from_station, "to": to_station,
+                    {"train_no": "G103", "from": origin, "to": destination,
                      "depart_time": "10:00", "arrive_time": "15:00", "price": 553.5},
                 ],
             },
@@ -669,14 +625,4 @@ def build_mock_tools() -> list:
             ensure_ascii=False,
         )
 
-    return [amap_search_poi, mock_weather, mock_query_tickets, fliggy_search_hotel]
-
-
-async def verify_12306_connection() -> dict[str, Any]:
-    """验证 12306 MCP 连通性，返回工具清单。"""
-    client = _build_12306_mcp_client()
-    tools = await client.get_tools()
-    return {
-        "ok": True,
-        "tool_names": [t.name for t in tools],
-    }
+    return [amap_search_poi, mock_weather, mock_search_train, fliggy_search_hotel]

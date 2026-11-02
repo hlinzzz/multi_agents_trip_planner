@@ -4,8 +4,7 @@ echo 安装依赖到 E:\python ...
 E:\python\python.exe -m pip install -r requirements.txt
 
 echo.
-echo 安装完成。如需安装 12306 MCP 服务端依赖：
-echo   E:\python\python.exe -m pip install "mcp>=1.2,<2" requests
+echo 安装完成。
 echo.
 echo 下一步：复制 .env.example 为 .env 并填入真实凭证。
 pause

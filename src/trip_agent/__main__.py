@@ -3,7 +3,6 @@
 用法：
     python -m trip_agent mock "帮我规划一次3天北京游，预算3000"
     python -m trip_agent real  "帮我规划一次3天北京游，预算3000"
-    python -m trip_agent verify
 """
 from __future__ import annotations
 
@@ -51,14 +50,6 @@ def main() -> None:
 
     mode = args[0]
 
-    if mode == "verify":
-        from .tools import verify_12306_connection
-        result = asyncio.run(verify_12306_connection())
-        print("12306 MCP 连接成功，可用工具：")
-        for name in result["tool_names"]:
-            print(f"  - {name}")
-        return
-
     user_input = args[1] if len(args) > 1 else "帮我规划一次旅行"
 
     from .planner import TripPlanner
@@ -71,7 +62,7 @@ def main() -> None:
     elif mode == "real":
         asyncio.run(_run_real(user_input))
     else:
-        print(f"未知模式：{mode}，可选 mock / real / verify")
+        print(f"未知模式：{mode}，可选 mock / real")
 
 
 async def _run_real(user_input: str) -> None:

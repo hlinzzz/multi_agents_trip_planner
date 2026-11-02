@@ -48,7 +48,6 @@ HOTEL_PROMPT = """你是酒店推荐专家。根据目的地、日期和预算�
 TRAFFIC_PROMPT = """你是交通规划专家。查询出发城市到目的地（及城市间）的车次。
 优先使用 fliggy_search_train 查询车票（数据稳定、含票价），默认已返回高铁/动车二等座。
 若用户预算充足，可通过 seat_class_name 参数查一等座/商务座对比。
-注意：12306 接口可能因风控返回异常，若 12306 查询失败，直接使用 fliggy_search_train 的结果，不要反复重试。
 一次性完成查询并输出 JSON：{"trains": [{"train_no":..., "depart":..., "arrive":..., "price":...}]}
 其中 price 必须是「单张票价」，并额外给出按人数的总价（人数×单张价），字段如 price_per_person 和 price_total。"""
 
@@ -99,7 +98,7 @@ def build_all_agents(
         "attraction": [amap_search_poi],
         "weather":    [amap_weather],
         "hotel":      [fliggy_search_hotel],
-        "traffic":    [query_station_code, query_tickets, query_train_schedule, query_price],
+        "traffic":    [fliggy_search_train],
     }
     """
     return {
@@ -142,8 +141,6 @@ def assign_tools(all_tools: list) -> dict[str, list]:
             role_map["traffic"].append(t)
         elif name == "fliggy_search_poi":
             role_map["attraction"].append(t)
-        elif name in {"query_station_code", "query_tickets", "query_train_schedule", "query_price"}:
-            role_map["traffic"].append(t)
     return role_map
 
 
@@ -154,8 +151,7 @@ def assign_tools(all_tools: list) -> dict[str, list]:
 async def _run_subagent(agent, state: AgentState, input_text: str, recursion_limit: int = 8, include_history: bool = False) -> str:
     """异步运行一个子 Agent，返回其最终文本输出。
 
-    用 ainvoke 以支持 MCP 异步工具（12306 等 StructuredTool 仅支持 async）。
-    设置 recursion_limit 防止 ReAct agent 无限循环调用工具。
+    用 ainvoke 保持异步执行；设置 recursion_limit 防止 ReAct agent 无限循环调用工具。
 
     Args:
         include_history: 是否把主图已有的 messages 一起传给子 agent

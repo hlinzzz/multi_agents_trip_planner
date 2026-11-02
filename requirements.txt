@@ -5,10 +5,6 @@ langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-openai>=0.2.0
 langgraph>=0.2.60
-langchain-mcp-adapters>=0.1.0
-
-# MCP SDK（12306 MCP 服务端依赖，锁定 1.x）
-mcp>=1.2,<2
 
 requests>=2.31.0
 python-dotenv>=1.0.0
