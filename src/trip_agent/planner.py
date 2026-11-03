@@ -92,8 +92,9 @@ class TripPlanner:
         parse_prompt = (
             "从用户输入中提取旅行需求，输出严格 JSON：\n"
             '{"destination": str, "start_city": str, "days": int, '
-            '"people": int, "budget": float, "preferences": str}\n'
-            "缺失的字段用空字符串/0 填充；人数缺失时默认 1。\n"
+            '"people": int, "budget": float 或 null, "preferences": str}\n'
+            "缺失的字段用空字符串/0 填充；人数缺失时默认 1；"
+            "预算缺失时 budget 填 null（不要填 0）。\n"
             f"用户输入：{user_text}"
         )
         resp = self.planner_llm.invoke(parse_prompt)
@@ -101,13 +102,18 @@ class TripPlanner:
             data = json.loads(resp.content)
         except (json.JSONDecodeError, TypeError):
             data = {"destination": "", "start_city": "", "days": 0,
-                    "people": 1, "budget": 0.0, "preferences": ""}
+                    "people": 1, "budget": None, "preferences": ""}
+        budget_raw = data.get("budget")
+        try:
+            budget = float(budget_raw) if budget_raw not in (None, "", 0, "0") else None
+        except (TypeError, ValueError):
+            budget = None
         return {
             "destination": data.get("destination", ""),
             "start_city": data.get("start_city", ""),
             "days": int(data.get("days", 0) or 0),
             "people": int(data.get("people", 0) or 1),
-            "budget": float(data.get("budget", 0) or 0),
+            "budget": budget,
             "preferences": data.get("preferences", ""),
             "retry_count": 0,
         }

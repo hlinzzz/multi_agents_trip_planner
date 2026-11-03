@@ -70,7 +70,8 @@ BUDGET_PROMPT = """你是预算规划专家。根据总预算和各分项真实�
 2. 住宿按「房间数」计算：通常 2 人 1 间，间数 = 向上取整(人数/2)，住宿总价 = 每晚价×间数×晚数
 3. 每个分项用真实价格回填，明确写出「单价×人数（×天数）= 总价」的计算式
 4. 判断是否超支，若超支给出降级建议
-输出 JSON：{"breakdown": {"交通": {"预分配": 元, "实际": 元, "明细": "计算式"}, "住宿": {...}, "门票": {...}, "餐饮": {...}, "机动": {...}}, "总预算": 元, "总实际": 元, "over_budget": bool, "suggestion": "..."}
+5. 若用户未指定预算，则 has_budget 填 false、over_budget 填 false，只做核算不做超支判断
+输出 JSON：{"breakdown": {"交通": {"预分配": 元, "实际": 元, "明细": "计算式"}, "住宿": {...}, "门票": {...}, "餐饮": {...}, "机动": {...}}, "总预算": 元, "总实际": 元, "over_budget": bool, "has_budget": bool, "suggestion": "..."}
 注意：breakdown 里每个分项的值必须是「数字」而不是嵌套对象，明细放计算文字。"""
 
 
@@ -237,10 +238,19 @@ def itinerary_node(agent):
 
 def budget_agent_node(agent):
     async def _fn(state: AgentState) -> dict:
-        text = await _run_subagent(
-            agent, state,
-            f"总预算：{state.get('budget')}，人数：{state.get('people', 1)}。请根据前面收集的酒店、交通、门票价格做预算核算（按人数算总价）。",
-            include_history=True,
-        )
+        budget = state.get("budget")
+        if budget is None:
+            text = await _run_subagent(
+                agent, state,
+                f"人数：{state.get('people', 1)}。请根据前面收集的酒店、交通、门票价格做预算核算（按人数算总价）。"
+                "注意：用户未指定预算，仅需如实核算各分项费用与总计，over_budget 一律填 false，不要做超支判断。",
+                include_history=True,
+            )
+        else:
+            text = await _run_subagent(
+                agent, state,
+                f"总预算：{budget}，人数：{state.get('people', 1)}。请根据前面收集的酒店、交通、门票价格做预算核算（按人数算总价），并判断是否超支。",
+                include_history=True,
+            )
         return {"messages": [("assistant", f"[预算] {text}")]}
     return _fn

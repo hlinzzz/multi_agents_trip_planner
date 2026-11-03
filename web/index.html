@@ -781,7 +781,8 @@
         bHtml = '<div class="empty-tip">' + esc(JSON.stringify(bd).slice(0, 300)) + '</div>';
       }
       if (bd.suggestion) bHtml += '<div class="weather-advice">📝 ' + esc(bd.suggestion) + '</div>';
-      html += moduleCard('💰', '预算核算', bd.over_budget ? '超支' : '预算内', bHtml, 'budget');
+      const budgetTag = bd.over_budget ? '超支' : (bd.has_budget === false ? '已核算' : '预算内');
+      html += moduleCard('💰', '预算核算', budgetTag, bHtml, 'budget');
       navItems.push({ anchor: 'budget', icon: '💰', title: '预算核算' });
     }
 
@@ -1078,11 +1079,13 @@
       }
       resultCard.classList.add('show');
 
-      // 预算徽标
-      if (data.over_budget !== undefined) {
+      // 预算徽标（未指定预算时不显示超支/预算内徽标）
+      if (data.budget != null && data.over_budget !== undefined) {
         budgetBadge.style.display = 'inline-block';
         budgetBadge.textContent = data.over_budget ? '已超预算' : '预算内';
         budgetBadge.className = 'badge' + (data.over_budget ? ' over' : '');
+      } else if (data.budget == null) {
+        budgetBadge.style.display = 'none';
       }
 
       // 地图（延迟到下一帧，确保容器已布局完成）

@@ -14,6 +14,20 @@
 - **天气预报图例**：每日网格卡片 + 天气图标 + 温度风向 + 穿衣建议
 - **预算智能核算**：按人数×票价 / 住宿间数×晚数 实时核算，超支自动回退并给出降级建议
 
+## 📸 界面预览
+
+**行程地图 + 天气预报**（按天分色标记景点、路线连线，天气卡片含穿衣建议）
+
+![行程地图与天气](web/screenshots/map-weather.png)
+
+**每日行程时间线**（景点卡片：实景图片 + 时段 + 介绍 + 交通 / 餐饮建议）
+
+![每日行程](web/screenshots/itinerary-day.png)
+
+**交通方案 + 预算核算**（车次票价按人数核算，预算分项实时回填、超支预警）
+
+![交通与预算](web/screenshots/traffic-budget.png)
+
 ## 🏗️ 架构
 
 ```
@@ -40,9 +54,10 @@ trip_update/
 ├── requirements.txt        # Python 依赖
 ├── .env.example            # 环境变量模板（复制为 .env 填入真实值）
 ├── setup.bat               # Windows 一键安装依赖
-├── web_server.py           # Web 服务（http.server + API）
+├── web_server.py           # Web 服务（FastAPI + API）
 ├── web/
-│   └── index.html          # 前端页面（表单 + 模块化结果 + 高德地图）
+│   ├── index.html          # 前端页面（表单 + 模块化结果 + 高德地图）
+│   └── screenshots/        # 界面截图（README 预览用）
 └── src/trip_agent/
     ├── config.py           # 配置加载（.env）
     ├── state.py            # 共享 State (TypedDict)
@@ -88,6 +103,7 @@ cp .env.example .env
 ```bash
 python web_server.py
 # 浏览器打开 http://127.0.0.1:8899
+# 交互式 API 文档：http://127.0.0.1:8899/docs
 ```
 
 **方式二：CLI 命令行**

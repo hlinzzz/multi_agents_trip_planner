@@ -26,7 +26,7 @@ class AgentState(TypedDict, total=False):
     start_city: str           # 出发城市
     days: int                 # 旅行天数
     people: int               # 出行人数
-    budget: float             # 总预算（元）
+    budget: float | None       # 总预算（元）；None 表示用户未指定预算
     preferences: str          # 用户偏好（自由文本，如"偏好自然风光"）
 
     # ---- 各 Agent 中间结果 ----
