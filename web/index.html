@@ -262,6 +262,13 @@
     font-size: 13px;
   }
   .day-block .day-body { padding: 6px 16px; }
+  .hotel-stay {
+    margin-top: 10px; padding: 10px 12px;
+    background: #FFF7EC; border: 1px solid #FFE2B8; border-radius: 8px;
+    font-size: 13px; color: #8A5A00;
+  }
+  .hotel-stay b { color: #6B4300; }
+  .hotel-stay-price { font-weight: 600; color: var(--red); margin-left: 4px; }
   .spot-step {
     position: relative; padding: 14px 0 14px 24px;
     border-bottom: 1px dashed var(--border);
@@ -639,6 +646,7 @@
     if (hasItinerary) {
       let dayHtml = '';
       const dayKeys = Object.keys(itin);
+      const selHotel = s.hotel || null;
       dayKeys.forEach((day, di) => {
         const spots = itin[day] || [];
         const color = DAY_COLORS[di % DAY_COLORS.length];
@@ -664,7 +672,9 @@
         });
         dayHtml += `<div class="day-block">
           <div class="day-head" style="background:${color}"><span class="dnum">${di + 1}</span>${esc(day)}</div>
-          <div class="day-body">${steps}</div>
+          <div class="day-body">${steps}
+            ${selHotel ? `<div class="hotel-stay">🏨 当晚入住：<b>${esc(selHotel.name || '')}</b>${selHotel.price_per_night != null ? ' <span class="hotel-stay-price">' + fmtMoney(selHotel.price_per_night) + '/晚</span>' : ''}</div>` : ''}
+          </div>
         </div>`;
       });
       html += moduleCard('🗓️', '每日行程', dayKeys.length + ' 天', dayHtml, 'itinerary');
@@ -885,10 +895,9 @@
         if (legendBox) legendBox.innerHTML = legendHtml;
       }
 
-      // 批量添加标记
+      // 批量添加景点标记（fitView 延后到酒店标记也加入后统一执行）
       if (markers.length) {
         mapInstance.add(markers);
-        mapInstance.setFitView(markers, false, [60, 60, 60, 60]);
       }
 
       // 按天绘制路线（连接同一天内的景点）
@@ -906,6 +915,49 @@
         });
         mapInstance.add(polyline);
       });
+
+      // 酒店标记（🏨 独立标记，不参与按天路线连线）
+      const selHotel = structured.hotel || null;
+      if (selHotel && selHotel.location) {
+        const parts = String(selHotel.location).split(',');
+        if (parts.length >= 2) {
+          const hlng = parseFloat(parts[0]);
+          const hlat = parseFloat(parts[1]);
+          if (!isNaN(hlng) && !isNaN(hlat)) {
+            const hotelMarker = new AMap.Marker({
+              position: [hlng, hlat],
+              title: selHotel.name || '酒店',
+              anchor: 'bottom-center',
+            });
+            hotelMarker.setContent(
+              `<div style="background:#8A5A00;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏨</div>`
+            );
+            hotelMarker.setLabel({
+              offset: new AMap.Pixel(0, -30),
+              content: `<div style="background:#8A5A00;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.25);">🏨 ${esc(selHotel.name || '酒店')}</div>`
+            });
+            hotelMarker.on('click', () => {
+              const info = new AMap.InfoWindow({
+                content: `<div style="padding:8px 12px;max-width:240px;">
+                  <div style="font-weight:600;margin-bottom:4px;">🏨 ${esc(selHotel.name || '酒店')}</div>
+                  ${selHotel.price_per_night != null ? '<div style="font-size:12px;color:#E60012;font-weight:600;">' + fmtMoney(selHotel.price_per_night) + '/晚</div>' : ''}
+                  ${selHotel.address ? '<div style="font-size:12px;color:#666;">' + esc(selHotel.address) + '</div>' : ''}
+                </div>`,
+                offset: new AMap.Pixel(0, -30),
+              });
+              info.open(mapInstance, hotelMarker.getPosition());
+            });
+            mapInstance.add(hotelMarker);
+            markers.push(hotelMarker);  // 纳入 fitView 范围
+            if (legendBox) legendBox.innerHTML += `<span class="legend-item"><span class="dot" style="background:#8A5A00"></span>🏨 酒店</span>`;
+          }
+        }
+      }
+
+      // 所有标记（景点 + 酒店）就绪后，统一缩放视野
+      if (markers.length) {
+        mapInstance.setFitView(markers, false, [60, 60, 60, 60]);
+      }
 
       // 有城市时，用地理编码居中（标记已定位时优先 setFitView）
       if (city && markers.length === 0) {

@@ -137,6 +137,7 @@ def _parse_structured(structured: dict, city: str = "") -> dict:
         "trains": [],
         "itinerary": None,
         "budget": None,
+        "hotel": None,
     }
     attr = _extract_json(structured.get("attractions", "")) or {}
     result["attractions"] = attr.get("attractions", [])
@@ -153,6 +154,46 @@ def _parse_structured(structured: dict, city: str = "") -> dict:
             itinerary = _fill_missing_coords(itinerary, city)
         result["itinerary"] = itinerary
     result["budget"] = _extract_json(structured.get("budget", ""))
+    # 选定酒店：从预算结果里提取最终入住酒店，匹配 hotels 拿坐标，供行程展示与地图标记
+    result["hotel"] = _resolve_selected_hotel(result.get("budget"), result.get("hotels"))
+    return result
+
+
+def _resolve_selected_hotel(budget: dict | None, hotels: list) -> dict | None:
+    """从预算结果里提取选定酒店名，匹配酒店列表补全坐标/价格。
+
+    预算 Agent 输出 hotel（酒店全名）+ hotel_price_per_night（每晚单价），
+    这里按名称匹配 hotels 列表，拿到 location/image 等，返回一个完整酒店对象；
+    匹配不到时退化为仅含名称的占位对象。
+    """
+    if not budget or not isinstance(budget, dict):
+        return None
+    hotel_name = (budget.get("hotel") or "").strip()
+    if not hotel_name:
+        # 兼容：预算里没写 hotel 字段时，从住宿明细里尝试提取
+        hotel_name = ""
+    if not hotel_name:
+        return None
+
+    def _norm(s: str) -> str:
+        for w in ("酒店", "宾馆", "客栈", "民宿", " "):
+            s = s.replace(w, "")
+        return s
+
+    target = _norm(hotel_name)
+    matched = None
+    for h in hotels:
+        if not isinstance(h, dict):
+            continue
+        name = (h.get("name") or "").strip()
+        if _norm(name) == target or target in _norm(name) or _norm(name) in target:
+            matched = h
+            break
+    if matched:
+        result = dict(matched)
+    else:
+        result = {"name": hotel_name}
+    result["price_per_night"] = budget.get("hotel_price_per_night", result.get("price"))
     return result
 
 
